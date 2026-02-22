@@ -1,10 +1,13 @@
 import SwiftUI
 
 @main
-struct MyApp: App {
+struct MindSpanApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+//            ContentView()
+            MainTabView()
         }
     }
 }
+
+
