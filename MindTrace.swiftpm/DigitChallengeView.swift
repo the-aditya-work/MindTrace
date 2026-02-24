@@ -26,6 +26,12 @@ struct DigitChallengeView: View {
     @State private var messageColor: Color = .primary
     @State private var score = 0
     @State private var level = 1
+    @State private var runStart = Date()
+    @State private var showSummary = false
+    @State private var lastAccuracy: Double = 0
+    @State private var lastScore: Int = 0
+
+    @EnvironmentObject private var gameResultManager: GameResultManager
 
     /// Level 1 = 15s, 2 = 12s, 3 = 10s, 4 = 8s, 5 = 6s (simple → hard)
     private static let timeForLevel = [1: 15, 2: 12, 3: 10, 4: 8, 5: 6]
@@ -94,9 +100,36 @@ struct DigitChallengeView: View {
         }
         .onAppear {
             nextQuestion()
+            runStart = Date()
         }
         .onDisappear {
             timer?.invalidate()
+        }
+        .navigationTitle("Digit Challenge")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Finish") {
+                    finishRun()
+                }
+            }
+        }
+        .sheet(isPresented: $showSummary) {
+            GameSummaryView(
+                gameName: "Digit Challenge",
+                levelReached: level,
+                accuracy: lastAccuracy,
+                avgResponseTime: Date().timeIntervalSince(runStart),
+                score: lastScore
+            ) {
+                score = 0
+                level = 1
+                nextQuestion()
+                runStart = Date()
+                showSummary = false
+            } onDone: {
+                showSummary = false
+            }
         }
     }
 
@@ -237,6 +270,8 @@ struct DigitChallengeView: View {
             message = "Correct!"
             messageColor = .green
             if level < maxLevel { level += 1 }
+            lastAccuracy = 100
+            lastScore = score * 100
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                 nextQuestion()
             }
@@ -254,6 +289,21 @@ struct DigitChallengeView: View {
         slot2 = nil
         selectedSlot = 1
         startTimer()
+    }
+
+    private func finishRun() {
+        if lastScore == 0 {
+            lastAccuracy = score > 0 ? 100 : 0
+            lastScore = score * 100
+        }
+        gameResultManager.record(
+            gameName: "Digit Challenge",
+            maxLevelReached: level,
+            accuracy: lastAccuracy,
+            avgResponseTime: Date().timeIntervalSince(runStart),
+            totalScore: lastScore
+        )
+        showSummary = true
     }
 
     private func generatePuzzleForLevel(_ lvl: Int) -> Puzzle {

@@ -17,12 +17,20 @@ struct MotionChallengeView: View {
         case movable = "□"
     }
 
-    let gridSize = 5
+    @State private var level: Int = 1
+    private var gridSize: Int {
+        min(7, 5 + (level - 1) / 2)
+    }
     @State private var grid: [[Cell]] = []
     @State private var ballPos: (Int, Int) = (0, 0)
     @State private var holePos: (Int, Int) = (0, 0)
     @State private var moves = 0
     @State private var showWin = false
+    @State private var showSummary = false
+    @State private var runStart = Date()
+    @State private var lastScore: Int = 0
+
+    @EnvironmentObject private var gameResultManager: GameResultManager
 
     var body: some View {
         ZStack {
@@ -78,6 +86,7 @@ struct MotionChallengeView: View {
                             .foregroundColor(.green)
                             .bold()
                         Button("Play Again") {
+                            level = min(level + 1, 10)
                             generateMaze()
                         }
                         .buttonStyle(.borderedProminent)
@@ -91,7 +100,35 @@ struct MotionChallengeView: View {
                 Spacer()
             }
             .padding()
-            .onAppear { generateMaze() }
+            .onAppear {
+                runStart = Date()
+                generateMaze()
+            }
+        }
+        .navigationTitle("Motion Challenge")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Finish") {
+                    finishRun()
+                }
+            }
+        }
+        .sheet(isPresented: $showSummary) {
+            GameSummaryView(
+                gameName: "Motion Challenge",
+                levelReached: level,
+                accuracy: 100,
+                avgResponseTime: Date().timeIntervalSince(runStart),
+                score: lastScore
+            ) {
+                level = 1
+                generateMaze()
+                runStart = Date()
+                showSummary = false
+            } onDone: {
+                showSummary = false
+            }
         }
     }
 
@@ -154,6 +191,14 @@ struct MotionChallengeView: View {
                 ballPos = (nr, nc)
                 moves += 1
                 showWin = true
+                lastScore = max(10, 200 - moves * 10)
+                gameResultManager.record(
+                    gameName: "Motion Challenge",
+                    maxLevelReached: level,
+                    accuracy: 100,
+                    avgResponseTime: Date().timeIntervalSince(runStart),
+                    totalScore: lastScore
+                )
                 return
             }
             if grid[nr][nc] == .empty || grid[nr][nc] == .movable {
@@ -165,4 +210,19 @@ struct MotionChallengeView: View {
             nc += dc
         }
     }
+
+    private func finishRun() {
+        if lastScore == 0 {
+            lastScore = max(0, 150 - moves * 10)
+        }
+        gameResultManager.record(
+            gameName: "Motion Challenge",
+            maxLevelReached: level,
+            accuracy: 100,
+            avgResponseTime: Date().timeIntervalSince(runStart),
+            totalScore: lastScore
+        )
+        showSummary = true
+    }
 }
+

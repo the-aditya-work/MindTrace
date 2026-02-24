@@ -2,13 +2,13 @@ import SwiftUI
 
 struct MindDashboardView: View {
 
-    @EnvironmentObject private var scoreManager: ScoreManager
+    @EnvironmentObject private var gameResultManager: GameResultManager
     @State private var animatePulse: Bool = false
 
-    private var totalGames: Int { scoreManager.totalGamesPlayed }
-    private var bestScore: Int { scoreManager.bestScore }
-    private var averageScore: Int { scoreManager.averageScore }
-    private var lastTopic: String { scoreManager.lastPlayedTopic ?? "Play a game to get started" }
+    private var totalGames: Int { gameResultManager.totalGames }
+    private var bestScore: Int { gameResultManager.bestScore }
+    private var averageScore: Int { gameResultManager.averageScore }
+    private var lastTopic: String { gameResultManager.lastGameName ?? "Play a game to get started" }
 
     var body: some View {
         ZStack {
@@ -148,7 +148,7 @@ struct MindDashboardView: View {
     // MARK: - Topic Mastery
 
     private var topicMasterySection: some View {
-        let topics = scoreManager.topicAverages
+        let topics = gameResultManager.gameAverages
         return VStack(alignment: .leading, spacing: 12) {
             Text("Mastery")
                 .font(.headline)
@@ -160,7 +160,7 @@ struct MindDashboardView: View {
             } else {
                 VStack(spacing: 10) {
                     ForEach(Array(topics.prefix(8).enumerated()), id: \.offset) { _, item in
-                        topicRow(topic: item.topic, value: item.average)
+                        topicRow(topic: item.gameName, value: item.average)
                     }
                 }
             }
