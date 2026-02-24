@@ -10,6 +10,12 @@ import SwiftUI
 
 struct DeductiveLogicGameView: View {
 
+    @EnvironmentObject private var gameResultManager: GameResultManager
+    @State private var summaryVisible = false
+    @State private var runStart = Date()
+    @State private var lastAccuracy: Double = 0
+    @State private var lastScore: Int = 0
+
     // MARK: - Shape Model
     enum ShapeType: CaseIterable {
         case square, triangle, circle, plus
@@ -112,8 +118,32 @@ struct DeductiveLogicGameView: View {
             }
             .padding()
         }
+        .navigationTitle("Geo-Sudo")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Finish") {
+                    recordAndShowSummary()
+                }
+            }
+        }
         .onAppear {
+            runStart = Date()
             generatePuzzle()
+        }
+        .sheet(isPresented: $summaryVisible) {
+            GameSummaryView(
+                gameName: "Geo-Sudo Challenge",
+                levelReached: level,
+                accuracy: lastAccuracy,
+                avgResponseTime: Date().timeIntervalSince(runStart),
+                score: lastScore
+            ) {
+                generatePuzzle()
+                summaryVisible = false
+            } onDone: {
+                summaryVisible = false
+            }
         }
     }
 
@@ -173,7 +203,12 @@ extension DeductiveLogicGameView {
     }
 
     func checkAllAnswers() {
+        let total = correctAnswers.count
+        let correct = userAnswers.filter { correctAnswers[$0.key] == $0.value }.count
+        lastAccuracy = total == 0 ? 0 : (Double(correct) / Double(total)) * 100
+        lastScore = Int(round(lastAccuracy)) * max(1, level)
         showResult = true
+        recordResult()
     }
 
     func levelUp() {
@@ -183,6 +218,28 @@ extension DeductiveLogicGameView {
     var allCorrect: Bool {
         userAnswers.count == correctAnswers.count &&
         userAnswers.allSatisfy { correctAnswers[$0.key] == $0.value }
+    }
+
+    private func recordResult() {
+        gameResultManager.record(
+            gameName: "Geo-Sudo Challenge",
+            maxLevelReached: level,
+            accuracy: lastAccuracy,
+            avgResponseTime: Date().timeIntervalSince(runStart),
+            totalScore: lastScore
+        )
+    }
+
+    private func recordAndShowSummary() {
+        if lastScore == 0 {
+            // If user finishes without pressing Check, approximate accuracy
+            let total = correctAnswers.count
+            let correct = userAnswers.filter { correctAnswers[$0.key] == $0.value }.count
+            lastAccuracy = total == 0 ? 0 : (Double(correct) / Double(total)) * 100
+            lastScore = Int(round(lastAccuracy)) * max(1, level)
+        }
+        recordResult()
+        summaryVisible = true
     }
 }
 

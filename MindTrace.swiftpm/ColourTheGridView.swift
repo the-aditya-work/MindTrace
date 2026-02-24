@@ -16,6 +16,11 @@ struct ColourTheGridView: View {
     @State private var userColors: [Int: Color] = [:]
     @State private var showResult = false
     @State private var score = 0
+    @State private var level: Int = 1
+    @State private var showSummary = false
+    @State private var runStart = Date()
+
+    @EnvironmentObject private var gameResultManager: GameResultManager
 
     enum Phase {
         case learn, quiz, result
@@ -52,7 +57,35 @@ struct ColourTheGridView: View {
                 }
                 .padding()
             }
-            .onAppear { startGame() }
+            .onAppear {
+                runStart = Date()
+                startGame()
+            }
+        }
+        .navigationTitle("Colour the Grid")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Finish") {
+                    finishRun()
+                }
+            }
+        }
+        .sheet(isPresented: $showSummary) {
+            GameSummaryView(
+                gameName: "Colour the Grid",
+                levelReached: level,
+                accuracy: Double(score),
+                avgResponseTime: Date().timeIntervalSince(runStart),
+                score: score
+            ) {
+                level = 1
+                startGame()
+                runStart = Date()
+                showSummary = false
+            } onDone: {
+                showSummary = false
+            }
         }
     }
 
@@ -169,6 +202,25 @@ struct ColourTheGridView: View {
         }
         score = correct * 10
         phase = .result
+        gameResultManager.record(
+            gameName: "Colour the Grid",
+            maxLevelReached: level,
+            accuracy: Double(score),
+            avgResponseTime: Date().timeIntervalSince(runStart),
+            totalScore: score
+        )
+        level = min(level + 1, 10)
+    }
+
+    private func finishRun() {
+        gameResultManager.record(
+            gameName: "Colour the Grid",
+            maxLevelReached: level,
+            accuracy: Double(score),
+            avgResponseTime: Date().timeIntervalSince(runStart),
+            totalScore: score
+        )
+        showSummary = true
     }
 }
 
