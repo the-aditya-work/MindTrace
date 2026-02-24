@@ -1,48 +1,17 @@
-//
-//  File.swift
-//  MindSpan
-//
-//  Created by Aditya Rai on 29/01/26.
-//
-
-//import SwiftUI
-//
-//struct MindDashboardView: View {
-//    var body: some View {
-//        VStack(spacing: 16) {
-//            Text("Your MindSpan")
-//                .font(.title)
-//
-//            Text("Overall Memory Strength")
-//                .foregroundColor(.secondary)
-//
-//            Text("78%")
-//                .font(.system(size: 48, weight: .bold))
-//        }
-//    }
-//}
-
 import SwiftUI
 
 struct MindDashboardView: View {
-    // MARK: - Mock metrics (bind to real model later)
-    @State private var visualMemory: Int = 72
-    @State private var focusMemory: Int = 64
-    @State private var associationMemory: Int = 81
 
-    // Computed overall (simple average for now)
-    private var overallMindSpan: Int {
-        let values = [visualMemory, focusMemory, associationMemory].map(Double.init)
-        let avg = values.reduce(0, +) / Double(values.count)
-        return Int(round(avg))
-    }
-
-    // Animation state
+    @EnvironmentObject private var scoreManager: ScoreManager
     @State private var animatePulse: Bool = false
+
+    private var totalGames: Int { scoreManager.totalGamesPlayed }
+    private var bestScore: Int { scoreManager.bestScore }
+    private var averageScore: Int { scoreManager.averageScore }
+    private var lastTopic: String { scoreManager.lastPlayedTopic ?? "Play a game to get started" }
 
     var body: some View {
         ZStack {
-            // Gentle gradient background
             LinearGradient(
                 colors: [
                     Color.indigo.opacity(0.25),
@@ -57,9 +26,9 @@ struct MindDashboardView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     header
-                    summaryCards
+                    scoreGrid
                     overallCard
-                    reflection
+                    topicMasterySection
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
@@ -67,54 +36,70 @@ struct MindDashboardView: View {
             }
         }
         .onAppear {
-            // Soft pulse for overall number
             withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
                 animatePulse = true
             }
         }
     }
 
-    // MARK: - Header
+    // MARK: - Header & Greeting
+
     private var header: some View {
         VStack(spacing: 6) {
-            Text("Your MindSpan")
+            Text("Mind % Dashboard")
                 .font(.largeTitle.bold())
                 .foregroundStyle(.primary)
                 .accessibilityAddTraits(.isHeader)
-            Text("A calm overview of your memory patterns")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
         }
     }
 
-    // MARK: - Summary Cards
-    private var summaryCards: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                summaryCard(title: "Visual Memory %", value: visualMemory, color: .mint)
-                summaryCard(title: "Focus Memory %", value: focusMemory, color: .cyan)
-            }
-            HStack(spacing: 12) {
-                summaryCard(title: "Association Memory %", value: associationMemory, color: .purple)
-            }
+    // MARK: - Score Grid (less text, equal card sizes)
+
+    private var scoreGrid: some View {
+        let cols = [
+            GridItem(.flexible(), spacing: 12),
+            GridItem(.flexible(), spacing: 12)
+        ]
+        return LazyVGrid(columns: cols, spacing: 12) {
+            statCard(title: "Games", value: "\(totalGames)", icon: "gamecontroller", tint: .mint)
+            statCard(title: "Best", value: "\(bestScore)%", icon: "trophy", tint: .orange)
+            statCard(title: "Avg", value: "\(averageScore)%", icon: "chart.line.uptrend.xyaxis", tint: .cyan)
+            statCard(title: "Last", value: lastTopic, icon: "clock", tint: .purple, isTextValue: true)
         }
     }
 
-    private func summaryCard(title: String, value: Int, color: Color) -> some View {
+    private func statCard(
+        title: String,
+        value: String,
+        icon: String,
+        tint: Color,
+        isTextValue: Bool = false
+    ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("\(value)%")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(tint)
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
                 Spacer()
             }
+
+            if isTextValue {
+                Text(value)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+            } else {
+                Text(value)
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+            }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity)
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 92, maxHeight: 92, alignment: .topLeading)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(.regularMaterial)
@@ -123,22 +108,14 @@ struct MindDashboardView: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.15))
         )
-        .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 6)
-        .overlay(alignment: .topTrailing) {
-            Circle()
-                .fill(color.opacity(0.35))
-                .frame(width: 18, height: 18)
-                .padding(10)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(title))
-        .accessibilityValue(Text("\(value) percent"))
+        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 6)
     }
 
-    // MARK: - Overall MindSpan
+    // MARK: - Overall Mind %
+
     private var overallCard: some View {
         VStack(spacing: 12) {
-            Text("Overall MindSpan %")
+            Text("Overall Mind %")
                 .font(.headline)
                 .foregroundStyle(.primary)
 
@@ -152,12 +129,12 @@ struct MindDashboardView: View {
                     .shadow(color: .black.opacity(0.06), radius: 12, x: 0, y: 6)
 
                 VStack(spacing: 8) {
-                    Text("\(overallMindSpan)%")
+                    Text("\(averageScore)%")
                         .font(.system(size: 56, weight: .bold, design: .rounded))
                         .foregroundStyle(.primary)
                         .scaleEffect(animatePulse ? 1.02 : 0.98)
                         .animation(.easeInOut(duration: 1.4), value: animatePulse)
-                    Text("A friendly snapshot today")
+                    Text("Average across all sessions")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -168,25 +145,27 @@ struct MindDashboardView: View {
         }
     }
 
-    // MARK: - Reflection
-    private var reflection: some View {
-        VStack(spacing: 10) {
-            Text("Reflection")
-                .font(.headline)
-            Text("Your mind adapts with attention and rest.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+    // MARK: - Topic Mastery
 
-            // Privacy-first reminder (no comparisons, no ranks)
-            Text("This view is private to you. There’s no ranking or comparison—only gentle awareness.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+    private var topicMasterySection: some View {
+        let topics = scoreManager.topicAverages
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("Mastery")
+                .font(.headline)
+
+            if topics.isEmpty {
+                Text("Play to build mastery.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(Array(topics.prefix(8).enumerated()), id: \.offset) { _, item in
+                        topicRow(topic: item.topic, value: item.average)
+                    }
+                }
+            }
         }
-        .padding(20)
+        .padding(16)
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -196,10 +175,27 @@ struct MindDashboardView: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.15))
         )
-        .shadow(color: .black.opacity(0.06), radius: 12, x: 0, y: 6)
+        .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 6)
     }
+
+    private func topicRow(topic: String, value: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(topic)
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text("\(value)%")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            ProgressView(value: Double(value), total: 100)
+                .tint(.green)
+        }
+    }
+
 }
 
 #Preview {
     MindDashboardView()
 }
+

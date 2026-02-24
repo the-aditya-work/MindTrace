@@ -17,6 +17,8 @@ struct ActualMemoryTestView: View {
         case result
     }
 
+    @EnvironmentObject private var scoreManager: ScoreManager
+
     @State private var phase: GamePhase = .sequence
     @State private var sequenceItems: [Color] = []
     @State private var currentIndex: Int = 0
@@ -24,6 +26,7 @@ struct ActualMemoryTestView: View {
     @State private var distractionTimeLeft: Int = 15
     @State private var score: Int = 0
     @State private var currentQuestion: Int = 0
+    @State private var hasRecordedScore: Bool = false
 
     let totalQuestions = 5
 
@@ -227,6 +230,16 @@ extension ActualMemoryTestView {
             }
             .buttonStyle(.borderedProminent)
             .tint(.orange)
+        }
+        .onAppear {
+            if !hasRecordedScore {
+                hasRecordedScore = true
+                scoreManager.record(
+                    topic: "Sequence Recall (Test)",
+                    source: .test,
+                    score: calculatePercentage()
+                )
+            }
         }
     }
 
