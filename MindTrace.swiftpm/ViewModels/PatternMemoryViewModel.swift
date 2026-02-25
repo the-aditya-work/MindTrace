@@ -23,6 +23,10 @@ final class PatternMemoryViewModel: ObservableObject {
     @Published var lastAccuracy: Double = 0
     @Published var lastAvgResponseTime: Double = 0
     @Published var lastScore: Int = 0
+    
+    // Callbacks for immediate feedback
+    var onCorrectAnswer: (() -> Void)?
+    var onWrongAnswer: (() -> Void)?
 
     private var displayTimer: Timer?
     private var tapTimestamps: [Date] = []
@@ -76,12 +80,37 @@ final class PatternMemoryViewModel: ObservableObject {
     func handleTap(on index: Int) {
         guard phase == .input else { return }
         guard !taps.contains(index) else { return }
+        
+        let currentTapIndex = taps.count
         taps.append(index)
         tapTimestamps.append(Date())
-
-        if taps.count == pattern.count {
-            computeStatsAndScore()
+        
+        // Check if this tap is correct
+        if currentTapIndex < pattern.count && pattern[currentTapIndex] == index {
+            // Correct tap
+            if currentTapIndex == pattern.count - 1 {
+                // All taps completed successfully
+                computeStatsAndScore()
+                onCorrectAnswer?()
+            }
+        } else {
+            // Wrong tap
+            onWrongAnswer?()
         }
+    }
+    
+    func moveToNextLevel() {
+        advanceLevelIfSuccessful()
+    }
+    
+    func retryLevel() {
+        taps = []
+        tapTimestamps = []
+        phase = .preview
+        previewTimeRemaining = previewTimeTotal
+        isShowingPattern = true
+        previewStart = Date()
+        startPreviewTimer()
     }
 
     func computeStatsAndScore() {

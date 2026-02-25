@@ -46,7 +46,7 @@ struct MindDashboardView: View {
 
     private var header: some View {
         VStack(spacing: 6) {
-            Text("Mind % Dashboard")
+            Text("Dashboard")
                 .font(.largeTitle.bold())
                 .foregroundStyle(.primary)
                 .accessibilityAddTraits(.isHeader)
@@ -115,7 +115,7 @@ struct MindDashboardView: View {
 
     private var overallCard: some View {
         VStack(spacing: 12) {
-            Text("Overall Mind %")
+            Text("Overall Performance")
                 .font(.headline)
                 .foregroundStyle(.primary)
 

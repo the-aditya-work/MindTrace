@@ -77,6 +77,7 @@ struct ColourTheGridView: View {
                 levelReached: level,
                 accuracy: Double(score),
                 avgResponseTime: Date().timeIntervalSince(runStart),
+                totalTime: Date().timeIntervalSince(runStart),
                 score: score
             ) {
                 level = 1

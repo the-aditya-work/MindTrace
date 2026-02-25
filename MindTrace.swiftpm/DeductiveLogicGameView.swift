@@ -137,6 +137,7 @@ struct DeductiveLogicGameView: View {
                 levelReached: level,
                 accuracy: lastAccuracy,
                 avgResponseTime: Date().timeIntervalSince(runStart),
+                totalTime: Date().timeIntervalSince(runStart),
                 score: lastScore
             ) {
                 generatePuzzle()

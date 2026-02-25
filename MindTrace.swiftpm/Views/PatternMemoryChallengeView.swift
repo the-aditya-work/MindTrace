@@ -6,6 +6,10 @@ struct PatternMemoryChallengeView: View {
     @EnvironmentObject private var gameResultManager: GameResultManager
 
     @State private var showingSummary = false
+    @State private var showingCorrectPopup = false
+    @State private var showingWrongPopup = false
+    @State private var gameStartTime = Date()
+    @State private var totalGameTime: TimeInterval = 0
 
     var body: some View {
         VStack(spacing: 20) {
@@ -36,7 +40,28 @@ struct PatternMemoryChallengeView: View {
             }
         }
         .onAppear {
+            gameStartTime = Date()
             viewModel.configureForCurrentLevel()
+            
+            // Set up callbacks for immediate feedback
+            viewModel.onCorrectAnswer = {
+                showingCorrectPopup = true
+            }
+            viewModel.onWrongAnswer = {
+                showingWrongPopup = true
+            }
+        }
+        .sheet(isPresented: $showingCorrectPopup) {
+            CorrectAnswerPopup {
+                viewModel.moveToNextLevel()
+                showingCorrectPopup = false
+            }
+        }
+        .sheet(isPresented: $showingWrongPopup) {
+            WrongAnswerPopup {
+                viewModel.retryLevel()
+                showingWrongPopup = false
+            }
         }
         .sheet(isPresented: $showingSummary) {
             GameSummaryView(
@@ -44,12 +69,15 @@ struct PatternMemoryChallengeView: View {
                 levelReached: viewModel.level,
                 accuracy: viewModel.lastAccuracy,
                 avgResponseTime: viewModel.lastAvgResponseTime,
+                totalTime: totalGameTime,
                 score: viewModel.lastScore
             ) {
-                // Retry
-                viewModel.configureForCurrentLevel()
+                // Retry - reset game to fresh state
+                resetGame()
                 showingSummary = false
             } onDone: {
+                // Done - reset game to fresh state
+                resetGame()
                 showingSummary = false
             }
         }
@@ -86,7 +114,16 @@ struct PatternMemoryChallengeView: View {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .fill(cellColor(isInPattern: isInPattern, isTapped: isTapped))
                             .frame(height: 44)
-                        if isTapped, let pos = viewModel.taps.firstIndex(of: index) {
+                        
+                        // Show numbers during preview phase for pattern cells
+                        if viewModel.phase == .preview, let pos = viewModel.pattern.firstIndex(of: index) {
+                            Text("\(pos + 1)")
+                                .font(.title3.weight(.bold))
+                                .foregroundStyle(.white)
+                        }
+                        
+                        // Show numbers during input phase for tapped cells
+                        if viewModel.phase == .input, let pos = viewModel.taps.firstIndex(of: index) {
                             Text("\(pos + 1)")
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(.white)
@@ -118,6 +155,7 @@ struct PatternMemoryChallengeView: View {
     }
 
     private func finishRun() {
+        totalGameTime = Date().timeIntervalSince(gameStartTime)
         if viewModel.lastScore == 0 {
             viewModel.computeStatsAndScore()
         }
@@ -129,7 +167,126 @@ struct PatternMemoryChallengeView: View {
             totalScore: viewModel.lastScore
         )
         showingSummary = true
-        viewModel.advanceLevelIfSuccessful()
+    }
+    
+    private func resetGame() {
+        // Reset timing
+        gameStartTime = Date()
+        totalGameTime = 0
+        
+        // Reset view model to fresh state
+        viewModel.level = 1
+        viewModel.configureForCurrentLevel()
+        
+        // Clear any showing popups
+        showingCorrectPopup = false
+        showingWrongPopup = false
+    }
+}
+
+// MARK: - Popup Components
+
+struct CorrectAnswerPopup: View {
+    let onMoveNext: () -> Void
+    
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 280, height: 200)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .strokeBorder(
+                                    LinearGradient(
+                                        colors: [.green.opacity(0.3), .green.opacity(0.1)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        )
+                        .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
+                    
+                    VStack(spacing: 16) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.green.opacity(0.15))
+                                .frame(width: 60, height: 60)
+                            
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(Color.green)
+                        }
+                        
+                        Text("You are right!")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.primary)
+                        
+                        Button("Move Next") {
+                            onMoveNext()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.green)
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct WrongAnswerPopup: View {
+    let onTryAgain: () -> Void
+    
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 280, height: 200)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .strokeBorder(
+                                    LinearGradient(
+                                        colors: [.red.opacity(0.3), .red.opacity(0.1)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        )
+                        .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
+                    
+                    VStack(spacing: 16) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.red.opacity(0.15))
+                                .frame(width: 60, height: 60)
+                            
+                            Image(systemName: "xmark")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(Color.red)
+                        }
+                        
+                        Text("Wrong")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.primary)
+                        
+                        Button("Try Again") {
+                            onTryAgain()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.red)
+                    }
+                }
+            }
+        }
     }
 }
 

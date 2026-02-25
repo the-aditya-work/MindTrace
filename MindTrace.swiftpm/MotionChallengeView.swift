@@ -120,6 +120,7 @@ struct MotionChallengeView: View {
                 levelReached: level,
                 accuracy: 100,
                 avgResponseTime: Date().timeIntervalSince(runStart),
+                totalTime: Date().timeIntervalSince(runStart),
                 score: lastScore
             ) {
                 level = 1

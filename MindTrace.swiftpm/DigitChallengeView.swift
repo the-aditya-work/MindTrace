@@ -120,6 +120,7 @@ struct DigitChallengeView: View {
                 levelReached: level,
                 accuracy: lastAccuracy,
                 avgResponseTime: Date().timeIntervalSince(runStart),
+                totalTime: Date().timeIntervalSince(runStart),
                 score: lastScore
             ) {
                 score = 0
@@ -361,3 +362,4 @@ struct DigitChallengeView: View {
         }
     }
 }
+
