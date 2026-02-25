@@ -17,6 +17,15 @@ struct DSAGamificationView: View {
 
     @State private var totalDisplayTime: Double = 5
     @State private var remainingDisplayTime: Double = 5
+    @State private var inputTimeLimit: Double = 10
+    @State private var remainingInputTime: Double = 10
+    @State private var inputStartTime: Date?
+    @State private var totalInputTime: Double = 0
+    @State private var showingFeedback: Bool = false
+    @State private var isCorrectAnswer: Bool = false
+    @State private var levelScores: [Int] = []
+    @State private var showingResult: Bool = false
+    @State private var averageScore: Int = 0
 
     @State private var isAnimatingSuccess: Bool = false
 
@@ -50,20 +59,57 @@ struct DSAGamificationView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
             }
-            .navigationTitle("")
-            .navigationBarHidden(true)
+            .navigationTitle("Eyesight Challenge")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(phase == .intro)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if phase == .playing && !showingDigits {
+                        Button("Finish") {
+                            finishGame()
+                        }
+                        .foregroundColor(.red)
+                    }
+                }
+            }
             .onAppear {
                 prepareLevel()
             }
             .onReceive(timer) { _ in
                 guard phase == .playing else { return }
-                guard showingDigits else { return }
-                guard remainingDisplayTime > 0 else {
-                    showingDigits = false
-                    statusText = "Enter the number"
-                    return
+                
+                if showingDigits {
+                    guard remainingDisplayTime > 0 else {
+                        showingDigits = false
+                        statusText = "Enter the number"
+                        inputStartTime = Date()
+                        remainingInputTime = inputTimeLimit
+                        return
+                    }
+                    remainingDisplayTime = max(0, remainingDisplayTime - 0.1)
+                } else {
+                    guard remainingInputTime > 0 else {
+                        statusText = "Time's up! Try again"
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            startLevel(resetLevel: false)
+                        }
+                        return
+                    }
+                    remainingInputTime = max(0, remainingInputTime - 0.1)
                 }
-                remainingDisplayTime = max(0, remainingDisplayTime - 0.1)
+            }
+            .overlay {
+                if showingFeedback {
+                    feedbackPopUp
+                        .transition(.scale.combined(with: .opacity))
+                        .zIndex(1000)
+                }
+                
+                if showingResult {
+                    resultPopUp
+                        .transition(.scale.combined(with: .opacity))
+                        .zIndex(1000)
+                }
             }
         }
     }
@@ -71,8 +117,19 @@ struct DSAGamificationView: View {
     // MARK: - Sections
 
     private var introSection: some View {
-        VStack(spacing: 18) {
-            VStack(spacing: 8) {
+        VStack(spacing: 24) {
+            // Header Card
+            VStack(spacing: 12) {
+                Image(systemName: "eye.circle.fill")
+                    .font(.system(size: 60))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [accent, Color.purple],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
                 Text("Eyesight Challenge")
                     .font(.largeTitle.bold())
                     .foregroundStyle(.primary)
@@ -82,60 +139,136 @@ struct DSAGamificationView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
-
-            VStack(alignment: .leading, spacing: 10) {
-                Label("A number flashes for a few seconds", systemImage: "eye")
-                Label("It hides — you re‑enter it using the keypad", systemImage: "number")
-                Label("Correct = next level, Wrong = retry", systemImage: "arrow.triangle.2.circlepath")
-            }
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
+            .padding(20)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(Color.white.opacity(0.5))
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [accent.opacity(0.3), Color.purple.opacity(0.2)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(color: .black.opacity(0.08), radius: 15, x: 0, y: 8)
+
+            // Instructions Card
+            VStack(alignment: .leading, spacing: 14) {
+                Text("How to Play")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    instructionRow(
+                        icon: "eye.circle.fill",
+                        title: "Memorize",
+                        description: "A number flashes for a few seconds"
+                    )
+                    
+                    instructionRow(
+                        icon: "number.circle.fill",
+                        title: "Recall",
+                        description: "It hides — you re‑enter it using the keypad"
+                    )
+                    
+                    instructionRow(
+                        icon: "arrow.triangle.2.circlepath.circle.fill",
+                        title: "Progress",
+                        description: "Correct = next level, Wrong = retry"
+                    )
+                }
+            }
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(.regularMaterial)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.18))
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 6)
+            .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
 
-            VStack(spacing: 10) {
-                Text("Level \(level) • \(targetDigitCount) digits • \(Int(levelConfig(for: level).seconds))s")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(accent.opacity(0.9))
-
+            // Level Info Card
+            VStack(spacing: 16) {
+                HStack {
+                    Image(systemName: "star.circle.fill")
+                        .foregroundStyle(accent)
+                    Text("Level \(level) • \(targetDigitCount) digits • \(Int(levelConfig(for: level).seconds))s")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                }
+                
                 Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
                         phase = .playing
                     }
                     startLevel(resetLevel: true)
                 } label: {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 16, weight: .semibold))
                         Text("Begin")
-                            .font(.headline)
-                        Image(systemName: "play.circle.fill")
-                            .font(.title3)
+                            .font(.headline.weight(.semibold))
                     }
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 12)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
                     .background(
                         LinearGradient(
                             colors: [accent, Color.purple],
                             startPoint: .leading,
                             endPoint: .trailing
                         ),
-                        in: Capsule()
+                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
                     )
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.18), radius: 12, x: 0, y: 8)
+                    .shadow(color: accent.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.scaleOnPress)
             }
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(accent.opacity(0.2), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 6)
         }
-        .padding(.top, 10)
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+    }
+    
+    private func instructionRow(icon: String, title: String, description: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .medium))
+                .foregroundStyle(accent)
+                .frame(width: 32, height: 32)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text(description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+        }
     }
 
     private var topSection: some View {
@@ -177,8 +310,16 @@ struct DSAGamificationView: View {
                             ProgressView(value: remainingDisplayTime, total: totalDisplayTime)
                                 .tint(accent)
                         } else {
-                            ProgressView(value: 0, total: 1)
-                                .tint(accent.opacity(0.15))
+                            VStack(spacing: 4) {
+                                HStack {
+                                    Text("Time: \(String(format: "%.1f", remainingInputTime))s")
+                                        .font(.caption.weight(.medium))
+                                        .foregroundStyle(remainingInputTime <= 3 ? .red : .secondary)
+                                    Spacer()
+                                }
+                                ProgressView(value: remainingInputTime, total: inputTimeLimit)
+                                    .tint(remainingInputTime <= 3 ? .red : accent)
+                            }
                         }
                     }
                 }
@@ -312,27 +453,56 @@ struct DSAGamificationView: View {
     private func checkAnswer() {
         let required = Array(generatedDigits.prefix(targetDigitCount))
         let correct = inputDigits == required
-
-        if correct {
-            statusText = "Correct! Moving to next level"
-            isAnimatingSuccess = true
-            scoreManager.record(
-                topic: "Eyesight Level \(level)",
-                source: .map,
-                score: 100
-            )
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-                level += 1
-                isAnimatingSuccess = false
-                startLevel(resetLevel: false)
-            }
-        } else {
-            statusText = "Try Again"
-            isAnimatingSuccess = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                startLevel(resetLevel: false)
-            }
+        
+        // Calculate input time for scoring
+        if let startTime = inputStartTime {
+            totalInputTime = Date().timeIntervalSince(startTime)
         }
+        
+        // Calculate score
+        let timeBonus = calculateTimeBonus()
+        let totalScore = 100 + timeBonus
+        
+        // Store score for this level
+        levelScores.append(totalScore)
+        
+        // Record score
+        scoreManager.record(
+            topic: "Eyesight Level \(level)",
+            source: .map,
+            score: totalScore
+        )
+        
+        // Show feedback pop-up
+        isCorrectAnswer = correct
+        showingFeedback = true
+    }
+    
+    private func calculateTimeBonus() -> Int {
+        guard totalInputTime > 0 else { return 0 }
+        
+        let timeRatio = remainingInputTime / inputTimeLimit
+        let bonus = Int(timeRatio * 50) // Max 50 bonus points
+        return max(0, bonus)
+    }
+    
+    private func finishGame() {
+        // Calculate average score
+        if !levelScores.isEmpty {
+            averageScore = levelScores.reduce(0, +) / levelScores.count
+        } else {
+            averageScore = 0
+        }
+        
+        // Show result pop-up
+        showingResult = true
+        
+        // Record final score
+        scoreManager.record(
+            topic: "Eyesight Challenge (Finished)",
+            source: .map,
+            score: averageScore
+        )
     }
 
     private func startLevel(resetLevel: Bool) {
@@ -342,6 +512,10 @@ struct DSAGamificationView: View {
         showingDigits = true
         totalDisplayTime = config.seconds
         remainingDisplayTime = config.seconds
+        inputTimeLimit = max(8, config.seconds * 2) // Input time based on display time
+        remainingInputTime = inputTimeLimit
+        inputStartTime = nil
+        totalInputTime = 0
         statusText = "Memorize the number"
     }
 
@@ -352,6 +526,10 @@ struct DSAGamificationView: View {
         showingDigits = false
         totalDisplayTime = config.seconds
         remainingDisplayTime = config.seconds
+        inputTimeLimit = max(8, config.seconds * 2)
+        remainingInputTime = inputTimeLimit
+        inputStartTime = nil
+        totalInputTime = 0
         statusText = "Tap Begin to start"
     }
 
@@ -372,6 +550,214 @@ struct DSAGamificationView: View {
             return (digits, seconds)
         }
     }
+}
+
+// MARK: - Pop-up Views
+
+extension DSAGamificationView {
+    
+    private var feedbackPopUp: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    // Prevent dismissing by tapping outside
+                }
+            
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    Image(systemName: isCorrectAnswer ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .font(.system(size: 60))
+                        .foregroundStyle(isCorrectAnswer ? .green : .red)
+                    
+                    Text(isCorrectAnswer ? "You are right!" : "Wrong")
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.primary)
+                    
+                    if isCorrectAnswer {
+                        Text("Great job! Ready for next level?")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    } else {
+                        Text("Let's try again")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                
+                HStack(spacing: 12) {
+                    if isCorrectAnswer {
+                        Button("Move Next") {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showingFeedback = false
+                                level += 1
+                                startLevel(resetLevel: false)
+                            }
+                        }
+                        .buttonStyle(.prominentButtonStyle)
+                        .tint(.green)
+                        
+                        Button("Back") {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showingFeedback = false
+                                phase = .intro
+                            }
+                        }
+                        .buttonStyle(.secondaryButtonStyle)
+                    } else {
+                        Button("Try Again") {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showingFeedback = false
+                                startLevel(resetLevel: false)
+                            }
+                        }
+                        .buttonStyle(.prominentButtonStyle)
+                        .tint(.orange)
+                        
+                        Button("Back") {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showingFeedback = false
+                                phase = .intro
+                            }
+                        }
+                        .buttonStyle(.secondaryButtonStyle)
+                    }
+                }
+            }
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(Color.white.opacity(0.9))
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 10)
+            .padding(.horizontal, 40)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
+    }
+    
+    private var resultPopUp: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    // Prevent dismissing by tapping outside
+                }
+            
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    Image(systemName: "star.circle.fill")
+                        .font(.system(size: 60))
+                        .foregroundStyle(.yellow)
+                    
+                    Text("Game Finished!")
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.primary)
+                    
+                    Text("Your Average Score")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    
+                    Text("\(averageScore)%")
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .foregroundStyle(.primary)
+                    
+                    Text("Levels completed: \(levelScores.count)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Button("Back to Menu") {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showingResult = false
+                        phase = .intro
+                        levelScores = []
+                        level = 1
+                    }
+                }
+                .buttonStyle(.prominentButtonStyle)
+                .tint(.blue)
+            }
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(Color.white.opacity(0.9))
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 10)
+            .padding(.horizontal, 40)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
+    }
+}
+
+// MARK: - Custom Button Styles
+
+struct ProminentButtonStyle: ButtonStyle {
+    let tint: Color
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundColor(.white)
+            .font(.headline.weight(.semibold))
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(
+                LinearGradient(
+                    colors: [tint, tint.opacity(0.8)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+struct SecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundColor(.secondary)
+            .font(.headline.weight(.medium))
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
+            )
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+extension ButtonStyle where Self == ProminentButtonStyle {
+    static var prominentButtonStyle: ProminentButtonStyle { ProminentButtonStyle(tint: .blue) }
+    static func prominentButtonStyle(tint: Color) -> ProminentButtonStyle { ProminentButtonStyle(tint: tint) }
+}
+
+extension ButtonStyle where Self == SecondaryButtonStyle {
+    static var secondaryButtonStyle: SecondaryButtonStyle { SecondaryButtonStyle() }
 }
 
 // MARK: - Button Style
