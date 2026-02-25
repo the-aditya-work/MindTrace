@@ -23,7 +23,7 @@ struct MainTabView: View {
 
             MindDashboardView()
                 .tabItem {
-                    Label("Mind %", systemImage: "chart.bar")
+                    Label("Dashboard", systemImage: "chart.bar")
                 }
         }
     }

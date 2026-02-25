@@ -40,17 +40,17 @@ final class GameResultManager: ObservableObject {
     // MARK: - Aggregates
 
     var totalGames: Int {
-        results.count
+        Set(results.map(\.gameName)).count
     }
 
     var bestScore: Int {
-        results.map(\.totalScore).max() ?? 0
+        min(results.map(\.totalScore).max() ?? 0, 100)
     }
 
     var averageScore: Int {
         guard !results.isEmpty else { return 0 }
         let total = results.map(\.totalScore).reduce(0, +)
-        return Int(round(Double(total) / Double(results.count)))
+        return min(Int(round(Double(total) / Double(results.count))), 100)
     }
 
     var lastGameName: String? {
@@ -63,7 +63,7 @@ final class GameResultManager: ObservableObject {
         let pairs = grouped.map { (name, items) -> (String, Int) in
             let total = items.map(\.totalScore).reduce(0, +)
             let avg = Int(round(Double(total) / Double(items.count)))
-            return (name, avg)
+            return (name, min(avg, 100))
         }
         return pairs.sorted { $0.0 < $1.0 }
     }

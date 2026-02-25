@@ -6,6 +6,7 @@ struct GameSummaryView: View {
     let levelReached: Int
     let accuracy: Double
     let avgResponseTime: Double
+    let totalTime: TimeInterval
     let score: Int
     let onRetry: () -> Void
     let onDone: () -> Void
@@ -19,6 +20,7 @@ struct GameSummaryView: View {
                 summaryRow(title: "Level", value: "Level \(levelReached)")
                 summaryRow(title: "Accuracy", value: "\(Int(round(accuracy)))%")
                 summaryRow(title: "Avg time", value: String(format: "%.1fs", avgResponseTime))
+                summaryRow(title: "Total time", value: String(format: "%.1fs", totalTime))
                 summaryRow(title: "Score", value: "\(score)")
             }
             .padding(16)
@@ -70,6 +72,7 @@ struct GameSummaryView: View {
             levelReached: 4,
             accuracy: 86,
             avgResponseTime: 1.2,
+            totalTime: 45.7,
             score: 780,
             onRetry: {},
             onDone: {}
