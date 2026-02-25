@@ -1,3 +1,4 @@
+/*
 import SwiftUI
 
 struct LogicMasterChallengeView: View {
@@ -406,4 +407,6 @@ struct LogicMasterChallengeView: View {
             .environmentObject(GameResultManager.shared)
     }
 }
+
+*/
 

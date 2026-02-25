@@ -27,19 +27,36 @@ struct MotionChallengeView: View {
     @State private var moves = 0
     @State private var showWin = false
     @State private var showSummary = false
+    @State private var showSuccessModal = false
+    @State private var showWrongModal = false
     @State private var runStart = Date()
     @State private var lastScore: Int = 0
+    @State private var gamePlayed: Bool = false
+    @State private var minimumMoves: Int = 0
+    @State private var completedMoves: Int = 0
+    @State private var completionTime: Date = Date()
 
     @EnvironmentObject private var gameResultManager: GameResultManager
 
+    private var timeBonus: Double {
+        // Provide a simple time-based bonus: faster completions yield higher bonus up to 1.0
+        // If game hasn't been played, neutral bonus of 1.0
+        guard gamePlayed else { return 1.0 }
+        let elapsed = completionTime.timeIntervalSince(runStart)
+        // Target time window: 5 to 60 seconds; map to 1.2 .. 0.8 range and clamp
+        let maxBonus: Double = 1.2
+        let minBonus: Double = 0.8
+        let fast: Double = 5
+        let slow: Double = 60
+        let t = max(min((elapsed - fast) / (slow - fast), 1.0), 0.0)
+        return max(minBonus, min(maxBonus, maxBonus - (maxBonus - minBonus) * t))
+    }
+
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color.indigo.opacity(0.3), Color.blue.opacity(0.2)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            let backgroundGradient = LinearGradient(colors: [Color.indigo.opacity(0.3), Color.blue.opacity(0.2)], startPoint: .top, endPoint: .bottom)
+            backgroundGradient
+                .ignoresSafeArea()
 
             VStack(spacing: 20) {
                 Text("Motion Challenge")
@@ -105,6 +122,35 @@ struct MotionChallengeView: View {
                 generateMaze()
             }
         }
+        .overlay(
+            // Success Modal
+            Group {
+                if showSuccessModal {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            showSuccessModal = false
+                        }
+                    
+                    successModalView
+                        .transition(.scale.combined(with: .opacity))
+                }
+                
+                // Wrong Answer Modal
+                if showWrongModal {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            showWrongModal = false
+                        }
+                    
+                    wrongModalView
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+        )
+        .animation(.easeInOut(duration: 0.3), value: showSuccessModal)
+        .animation(.easeInOut(duration: 0.3), value: showWrongModal)
         .navigationTitle("Motion Challenge")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -118,10 +164,10 @@ struct MotionChallengeView: View {
             GameSummaryView(
                 gameName: "Motion Challenge",
                 levelReached: level,
-                accuracy: 100,
-                avgResponseTime: Date().timeIntervalSince(runStart),
-                totalTime: Date().timeIntervalSince(runStart),
-                score: lastScore
+                accuracy: calculateAccuracy(),
+                avgResponseTime: gamePlayed ? completionTime.timeIntervalSince(runStart) : Date().timeIntervalSince(runStart),
+                totalTime: gamePlayed ? completionTime.timeIntervalSince(runStart) : Date().timeIntervalSince(runStart),
+                score: min(100, calculateScore())
             ) {
                 level = 1
                 generateMaze()
@@ -180,31 +226,35 @@ struct MotionChallengeView: View {
         grid[gridSize-1][gridSize-1] = .empty
         moves = 0
         showWin = false
+        minimumMoves = calculateMinimumMoves()
+        gamePlayed = false
+        completedMoves = 0
+        print("🔄 New maze generated: minimumMoves = \(minimumMoves)")
     }
 
     private func move(dr: Int, dc: Int) {
+        if !gamePlayed {
+            gamePlayed = true
+            runStart = Date()
+        }
         let (r, c) = ballPos
         var nr = r + dr
         var nc = c + dc
         while nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize {
             if grid[nr][nc] == .wall { break }
-            if grid[nr][nc] == .hole {
+            if grid[nr][nc] == .hole || (nr, nc) == holePos {
                 ballPos = (nr, nc)
                 moves += 1
+                completedMoves = moves // Use current moves count
                 showWin = true
-                lastScore = max(10, 200 - moves * 10)
-                gameResultManager.record(
-                    gameName: "Motion Challenge",
-                    maxLevelReached: level,
-                    accuracy: 100,
-                    avgResponseTime: Date().timeIntervalSince(runStart),
-                    totalScore: lastScore
-                )
+                completionTime = Date()
+                print("🎯 Ball reached hole! moves = \(moves), completedMoves = \(completedMoves)")
                 return
             }
             if grid[nr][nc] == .empty || grid[nr][nc] == .movable {
                 ballPos = (nr, nc)
                 moves += 1
+                completedMoves = moves // Keep completedMoves in sync with moves
                 return
             }
             nr += dr
@@ -213,17 +263,211 @@ struct MotionChallengeView: View {
     }
 
     private func finishRun() {
-        if lastScore == 0 {
-            lastScore = max(0, 150 - moves * 10)
+        print("🏁 Finish clicked: gamePlayed = \(gamePlayed), completedMoves = \(completedMoves)")
+        
+        if !gamePlayed || completedMoves == 0 {
+            lastScore = 0
+        } else {
+            lastScore = calculateScore()
         }
+        
+        let accuracy = calculateAccuracy()
+        let avgTime = gamePlayed ? completionTime.timeIntervalSince(runStart) : Date().timeIntervalSince(runStart)
+        
+        print("📊 Final: accuracy = \(accuracy)%, score = \(lastScore)")
+        
         gameResultManager.record(
             gameName: "Motion Challenge",
             maxLevelReached: level,
-            accuracy: 100,
-            avgResponseTime: Date().timeIntervalSince(runStart),
+            accuracy: accuracy,
+            avgResponseTime: avgTime,
             totalScore: lastScore
         )
         showSummary = true
+    }
+    
+    private func calculateMinimumMoves() -> Int {
+        // Simple BFS to find minimum moves from ball to hole
+        var queue: [(Int, Int, Int)] = [(ballPos.0, ballPos.1, 0)]
+        var visited = Set<String>()
+        visited.insert("\(ballPos.0),\(ballPos.1)")
+        
+        while !queue.isEmpty {
+            let (r, c, dist) = queue.removeFirst()
+            if (r, c) == holePos {
+                return dist
+            }
+            
+            for (dr, dc) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                var nr = r + dr
+                var nc = c + dc
+                while nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize {
+                    if grid[nr][nc] == .wall { break }
+                    let key = "\(nr),\(nc)"
+                    if !visited.contains(key) {
+                        visited.insert(key)
+                        queue.append((nr, nc, dist + 1))
+                    }
+                    nr += dr
+                    nc += dc
+                }
+            }
+        }
+        return gridSize * 2 // fallback
+    }
+    
+    private func calculateAccuracy() -> Double {
+        if !gamePlayed || completedMoves == 0 {
+            return 0.0
+        }
+        
+        // Simple logic: Compare your moves with shortest possible moves
+        let efficiency = minimumMoves > 0 ? Double(minimumMoves) / Double(completedMoves) : 1.0
+        let accuracy = efficiency * 100.0
+        
+        print("🎯 Simple Logic: Your moves = \(completedMoves), Shortest = \(minimumMoves), Accuracy = \(accuracy)%")
+        return min(100.0, accuracy)
+    }
+    
+    private func calculateScore() -> Int {
+        if !gamePlayed || completedMoves == 0 {
+            return 0
+        }
+        
+        // Simple logic: Score based on how close to shortest path
+        let efficiency = minimumMoves > 0 ? Double(minimumMoves) / Double(completedMoves) : 1.0
+        let score = Int(min(100.0, efficiency * 100.0 * timeBonus))
+        
+        print(" Simple Score: Your moves = \(completedMoves), Shortest = \(minimumMoves), Score = \(score)")
+        return min(100, score)
+    }
+    
+    private var wrongModalView: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                // Wrong Icon
+                ZStack {
+                    Circle()
+                        .fill(Color.red.opacity(0.2))
+                        .frame(width: 80, height: 80)
+                    
+                    Image(systemName: "xmark.octagon.fill")
+                        .font(.system(size: 50, weight: .bold))
+                        .foregroundColor(.red)
+                }
+                .scaleEffect(showSuccessModal ? 1.0 : 0.5)
+                .animation(.spring(response: 0.5, dampingFraction: 0.6), value: showSuccessModal)
+                
+                VStack(spacing: 8) {
+                    Text("Try again")
+                        .font(.title2.bold())
+                        .foregroundColor(.primary)
+                    
+                    Text("Not quite there. Keep going!")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                
+                HStack(spacing: 16) {
+                    Button("Try Again") {
+                        showSuccessModal = false
+                        generateMaze()
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Button("Move Next") {
+                        showSuccessModal = false
+                        level = min(level + 1, 10)
+                        generateMaze()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+            .padding(32)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.white.opacity(0.3), Color.clear]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .frame(maxWidth: 320)
+        }
+    }
+
+    private var successModalView: some View {
+        ZStack {
+            Color.clear // background handled by overlay dimmer
+            VStack(spacing: 24) {
+                ZStack {
+                    Circle()
+                        .fill(Color.green.opacity(0.2))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 50, weight: .bold))
+                        .foregroundColor(.green)
+                }
+                .scaleEffect(showSuccessModal ? 1.0 : 0.5)
+                .animation(.spring(response: 0.5, dampingFraction: 0.6), value: showSuccessModal)
+
+                VStack(spacing: 8) {
+                    Text("You are right!")
+                        .font(.title2.bold())
+                        .foregroundColor(.primary)
+                    Text("Target reached in \(moves) moves!")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Text("Score: \(calculateScore())")
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(.blue)
+                }
+
+                HStack(spacing: 16) {
+                    Button("Try Again") {
+                        showSuccessModal = false
+                        generateMaze()
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button("Move Next") {
+                        showSuccessModal = false
+                        level = min(level + 1, 10)
+                        generateMaze()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+            .padding(32)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.white.opacity(0.3), Color.clear]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .frame(maxWidth: 320)
+        }
     }
 }
 

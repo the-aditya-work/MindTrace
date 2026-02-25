@@ -24,6 +24,8 @@ struct GridChallengeView: View {
     @State private var userGridAnswers: Set<GridPos> = []
     @State private var showResult = false
     @State private var score = 0
+    @State private var showingCorrectPopup = false
+    @State private var showingWrongPopup = false
 
     enum Phase {
         case observe, symmetry, recall
@@ -56,6 +58,18 @@ struct GridChallengeView: View {
                 .padding()
             }
             .onAppear { startGame() }
+        }
+        .sheet(isPresented: $showingCorrectPopup) {
+            CorrectAnswerPopup {
+                nextOrRecall()
+                showingCorrectPopup = false
+            }
+        }
+        .sheet(isPresented: $showingWrongPopup) {
+            WrongAnswerPopup {
+                userGridAnswers = []
+                showingWrongPopup = false
+            }
         }
     }
 
@@ -145,11 +159,16 @@ struct GridChallengeView: View {
             .cornerRadius(12)
 
             Button("Submit") {
-                showResult = true
                 let correct = Set(highlighted.map { GridPos(r: $0.0, c: $0.1) })
                 let correctCount = userGridAnswers.intersection(correct).count
                 let wrongCount = userGridAnswers.subtracting(correct).count
                 score = max(0, correctCount * 10 - wrongCount * 5)
+                
+                if correctCount == highlighted.count && wrongCount == 0 {
+                    showingCorrectPopup = true
+                } else {
+                    showingWrongPopup = true
+                }
             }
             .buttonStyle(.borderedProminent)
 

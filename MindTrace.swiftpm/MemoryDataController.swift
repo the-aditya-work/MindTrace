@@ -1,10 +1,12 @@
 //
-//  File.swift
+//  MemoryDataController.swift
 //  MindSpan
 //
-//  Created by Aditya Rai on 29/01/26.
+//  UNUSED FILE - Commented out on 2025-02-26
+//  This file is not referenced anywhere in the project
 //
 
+/*
 import Foundation
 
 final class MemoryDataController: ObservableObject {
@@ -27,3 +29,5 @@ final class MemoryDataController: ObservableObject {
         results.append(result)
     }
 }
+
+*/

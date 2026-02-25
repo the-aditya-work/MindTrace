@@ -30,6 +30,8 @@ struct DigitChallengeView: View {
     @State private var showSummary = false
     @State private var lastAccuracy: Double = 0
     @State private var lastScore: Int = 0
+    @State private var showingCorrectPopup = false
+    @State private var showingWrongPopup = false
 
     @EnvironmentObject private var gameResultManager: GameResultManager
 
@@ -130,6 +132,22 @@ struct DigitChallengeView: View {
                 showSummary = false
             } onDone: {
                 showSummary = false
+            }
+        }
+        .sheet(isPresented: $showingCorrectPopup) {
+            CorrectAnswerPopup {
+                nextQuestion()
+                showingCorrectPopup = false
+            }
+        }
+        .sheet(isPresented: $showingWrongPopup) {
+            WrongAnswerPopup {
+                // Reset for retry
+                slot1 = nil
+                slot2 = nil
+                selectedSlot = 1
+                startTimer()
+                showingWrongPopup = false
             }
         }
     }
@@ -273,12 +291,11 @@ struct DigitChallengeView: View {
             if level < maxLevel { level += 1 }
             lastAccuracy = 100
             lastScore = score * 100
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                nextQuestion()
-            }
+            showingCorrectPopup = true
         } else {
             message = "Try again"
             messageColor = .red
+            showingWrongPopup = true
         }
     }
 
@@ -293,6 +310,7 @@ struct DigitChallengeView: View {
     }
 
     private func finishRun() {
+        timer?.invalidate() // Stop the timer when finish is clicked
         if lastScore == 0 {
             lastAccuracy = score > 0 ? 100 : 0
             lastScore = score * 100

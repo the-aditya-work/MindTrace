@@ -1,3 +1,12 @@
+//
+//  BFSPathGameView.swift
+//  MindSpan
+//
+//  UNUSED FILE - Commented out on 2025-02-26
+//  This file is not referenced anywhere in the project
+//
+
+/*
 import SwiftUI
 
 struct BFSPathGameView: View {
@@ -217,6 +226,8 @@ private extension Array {
     subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
 }
 
-#Preview {
-    BFSPathGameView()
-}
+*/
+
+//#Preview {
+//    BFSPathGameView()
+//}
