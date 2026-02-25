@@ -1,10 +1,12 @@
 //
-//  File.swift
+//  MemoryItem.swift
 //  MindSpan
 //
-//  Created by Aditya Rai on 29/01/26.
+//  UNUSED FILE - Commented out on 2025-02-26
+//  This file is not referenced anywhere in the project
 //
 
+/*
 import SwiftUI
 
 enum MemoryType {
@@ -21,3 +23,5 @@ struct MemoryItem: Identifiable {
     let value: String
     let displayTime: Double
 }
+
+*/

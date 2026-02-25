@@ -1,3 +1,12 @@
+//
+//  MSTBuilderView.swift
+//  MindSpan
+//
+//  UNUSED FILE - Commented out on 2025-02-26
+//  This file is not referenced anywhere in the project
+//
+
+/*
 import SwiftUI
 
 // MARK: - Disjoint Set Union (Union-Find)
@@ -257,6 +266,8 @@ struct MSTBuilderView: View {
     }
 }
 
-#Preview {
-    MSTBuilderView()
-}
+*/
+
+//#Preview {
+//    MSTBuilderView()
+//}

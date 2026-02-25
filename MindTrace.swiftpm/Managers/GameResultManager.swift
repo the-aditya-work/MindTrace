@@ -67,6 +67,14 @@ final class GameResultManager: ObservableObject {
         }
         return pairs.sorted { $0.0 < $1.0 }
     }
+    
+    /// Average for specific game across all levels
+    func averageForGame(_ gameName: String) -> Int {
+        let gameResults = results.filter { $0.gameName == gameName }
+        guard !gameResults.isEmpty else { return 0 }
+        let total = gameResults.map(\.totalScore).reduce(0, +)
+        return Int(round(Double(total) / Double(gameResults.count)))
+    }
 
     // MARK: - Persistence
 

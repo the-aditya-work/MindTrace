@@ -41,6 +41,8 @@ struct DeductiveLogicGameView: View {
     @State private var userAnswers: [GridPos: ShapeType] = [:]
     @State private var selectedPos: GridPos?
     @State private var showResult = false
+    @State private var showingCorrectPopup = false
+    @State private var showingWrongPopup = false
 
     private struct GridPos: Hashable {
         let r: Int
@@ -140,10 +142,37 @@ struct DeductiveLogicGameView: View {
                 totalTime: Date().timeIntervalSince(runStart),
                 score: lastScore
             ) {
+                level = 1
                 generatePuzzle()
                 summaryVisible = false
             } onDone: {
                 summaryVisible = false
+            }
+        }
+        .sheet(isPresented: $showingCorrectPopup) {
+            CorrectAnswerPopup {
+                if level < 3 { level += 1 }
+                generatePuzzle()
+                showingCorrectPopup = false
+            }
+        }
+        .sheet(isPresented: $showingWrongPopup) {
+            WrongAnswerPopup {
+                userAnswers = [:]
+                // Rebuild the grid by clearing only the originally blank cells
+                grid = grid.enumerated().map { r, row in
+                    row.enumerated().map { c, cell in
+                        let pos = GridPos(r: r, c: c)
+                        if correctAnswers.keys.contains(pos) {
+                            // This cell was originally a blank; clear it
+                            return nil
+                        } else {
+                            // This cell was a given; keep its original value
+                            return cell
+                        }
+                    }
+                }
+                showingWrongPopup = false
             }
         }
     }
@@ -208,8 +237,12 @@ extension DeductiveLogicGameView {
         let correct = userAnswers.filter { correctAnswers[$0.key] == $0.value }.count
         lastAccuracy = total == 0 ? 0 : (Double(correct) / Double(total)) * 100
         lastScore = Int(round(lastAccuracy)) * max(1, level)
-        showResult = true
-        recordResult()
+        
+        if allCorrect {
+            showingCorrectPopup = true
+        } else {
+            showingWrongPopup = true
+        }
     }
 
     func levelUp() {

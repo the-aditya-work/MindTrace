@@ -122,20 +122,24 @@ struct ColourTheGridView: View {
                                     .fill(col)
                                     .frame(height: 50)
                             } else {
-                                Menu {
-                                    ForEach(Array(colors.enumerated()), id: \.offset) { _, col in
-                                        Button {
-                                            userColors[i] = col
-                                        } label: {
-                                            Label("", systemImage: "circle.fill")
-                                                .foregroundColor(col)
-                                        }
-                                    }
+                                Button {
+                                    // Cycle through colors
+                                    let currentIndex = colors.firstIndex(of: userColors[i] ?? Color.gray) ?? 0
+                                    let nextIndex = (currentIndex + 1) % colors.count
+                                    userColors[i] = colors[nextIndex]
                                 } label: {
                                     RoundedRectangle(cornerRadius: 8)
                                         .fill(userColors[i] ?? Color.gray.opacity(0.5))
                                         .frame(height: 50)
+                                        .overlay(
+                                            // Add a small indicator to show it's tappable
+                                            Image(systemName: "paintbrush.fill")
+                                                .font(.caption)
+                                                .foregroundColor(.white)
+                                                .opacity(0.7)
+                                        )
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
                     }
@@ -144,6 +148,29 @@ struct ColourTheGridView: View {
             .padding(8)
             .background(Color.black.opacity(0.1))
             .cornerRadius(12)
+
+            // Color palette legend
+            VStack(spacing: 8) {
+                Text("Available Colors:")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                HStack(spacing: 12) {
+                    ForEach(Array(colors.enumerated()), id: \.offset) { index, color in
+                        VStack(spacing: 4) {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(color)
+                                .frame(width: 30, height: 30)
+                            Text("\(index + 1)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            .padding(12)
+            .background(Color.white.opacity(0.3))
+            .cornerRadius(8)
 
             Button("Submit") {
                 checkAnswer()

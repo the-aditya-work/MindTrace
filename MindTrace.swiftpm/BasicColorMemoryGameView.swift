@@ -5,6 +5,15 @@
 //  Created by Aditya Rai on 16/02/26.
 //
 
+//
+//  BasicColorMemoryGameView.swift
+//  MindSpan
+//
+//  UNUSED FILE - Commented out on 2025-02-26
+//  This file is not referenced anywhere in the project
+//
+
+/*
 import SwiftUI
 
 struct BasicColorMemoryGameView: View {
@@ -164,3 +173,9 @@ extension BasicColorMemoryGameView {
         }
     }
 }
+
+*/
+//
+//#Preview {
+//    BasicColorMemoryGameView()
+//}

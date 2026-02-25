@@ -30,12 +30,15 @@ struct TestTabView: View {
                         destination: PatternMemoryChallengeView()
                     )
 
+                    // Logic Master Challenge - Commented out
+                    /*
                     GameCardView(
                         title: "Logic Master Challenge",
                         subtitle: "Mixed logic, rule and switch puzzles.",
                         systemImage: "brain.head.profile",
                         destination: LogicMasterChallengeView()
                     )
+                    */
 
                     GameCardView(
                         title: "Digit Challenge",

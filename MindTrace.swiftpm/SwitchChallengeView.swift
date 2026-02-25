@@ -29,6 +29,8 @@ struct SwitchChallengeView: View {
     @State private var correctIndex = 0
     @State private var selectedIndex: Int? = nil
     @State private var showResult = false
+    @State private var showingCorrectPopup = false
+    @State private var showingWrongPopup = false
 
     private let sequenceLength = 4
 
@@ -75,7 +77,11 @@ struct SwitchChallengeView: View {
                             ForEach(Array(options.enumerated()), id: \.offset) { idx, seq in
                                 Button {
                                     selectedIndex = idx
-                                    showResult = true
+                                    if idx == correctIndex {
+                                        showingCorrectPopup = true
+                                    } else {
+                                        showingWrongPopup = true
+                                    }
                                 } label: {
                                     HStack(spacing: 12) {
                                         ForEach(Array(seq.enumerated()), id: \.offset) { _, s in
@@ -108,6 +114,18 @@ struct SwitchChallengeView: View {
                 .padding()
             }
             .onAppear { generatePuzzle() }
+        }
+        .sheet(isPresented: $showingCorrectPopup) {
+            CorrectAnswerPopup {
+                generatePuzzle()
+                showingCorrectPopup = false
+            }
+        }
+        .sheet(isPresented: $showingWrongPopup) {
+            WrongAnswerPopup {
+                selectedIndex = nil
+                showingWrongPopup = false
+            }
         }
     }
 
