@@ -132,6 +132,7 @@ struct DSAGamificationView: View {
                     )
                 
                 Text("Eyesight Challenge")
+//                    .font(.largeTitle.bold())
                     .font(.largeTitle.bold())
                     .foregroundStyle(.primary)
 
@@ -274,8 +275,9 @@ struct DSAGamificationView: View {
 
     private var topSection: some View {
         VStack(spacing: 12) {
-            Text("Eyesight Challenge")
-                .font(.title2.weight(.semibold))
+            Text("Let's start Eyesight Challenge...")
+                //.font(.title2.weight(.semibold))
+                .font(.subheadline)
                 .foregroundStyle(.primary)
 
             Text("Level \(level)")

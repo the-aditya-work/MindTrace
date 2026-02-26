@@ -74,8 +74,8 @@ struct DeductiveLogicGameView: View {
 
             VStack(spacing: 25) {
 
-                Text("Geo-Sudo Challenge")
-                    .font(.title2)
+                Text("Let's start Geo-Sudo Challenge...")
+                    .font(.subheadline)
                     .bold()
 
                 Text("Level \(level) • \(blankCountForCurrentLevel) blanks")

@@ -37,8 +37,8 @@ struct ColourTheGridView: View {
 
             ScrollView {
                 VStack(spacing: 24) {
-                    Text("Colour the Grid")
-                        .font(.title2)
+                    Text("let's start Colour the Grid game!")
+                        .font(.subheadline)
                         .bold()
 
                     Text("Learn the pattern, then color the empty cells.")
