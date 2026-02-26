@@ -52,8 +52,8 @@ struct DigitChallengeView: View {
 
             VStack(spacing: 20) {
 
-                Text("Digit Challenge")
-                    .font(.title2)
+                Text("Let's start Digit Challenge...")
+                    .font(.subheadline)
                     .bold()
 
                 HStack {

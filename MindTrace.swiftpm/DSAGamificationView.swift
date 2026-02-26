@@ -3,6 +3,7 @@ import SwiftUI
 struct DSAGamificationView: View {
 
     @EnvironmentObject private var scoreManager: ScoreManager
+    @EnvironmentObject private var gameResultManager: GameResultManager
 
     private let accent = Color.blue
 
@@ -59,9 +60,9 @@ struct DSAGamificationView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
             }
-            .navigationTitle("Eyesight Challenge")
+            .navigationTitle(phase == .intro ? "" : "Eyesight Challenge")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(phase == .intro)
+            .navigationBarBackButtonHidden(false)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if phase == .playing && !showingDigits {
@@ -131,6 +132,7 @@ struct DSAGamificationView: View {
                     )
                 
                 Text("Eyesight Challenge")
+//                    .font(.largeTitle.bold())
                     .font(.largeTitle.bold())
                     .foregroundStyle(.primary)
 
@@ -273,8 +275,9 @@ struct DSAGamificationView: View {
 
     private var topSection: some View {
         VStack(spacing: 12) {
-            Text("Eyesight Challenge")
-                .font(.title2.weight(.semibold))
+            Text("Let's start Eyesight Challenge...")
+                //.font(.title2.weight(.semibold))
+                .font(.subheadline)
                 .foregroundStyle(.primary)
 
             Text("Level \(level)")
@@ -459,9 +462,9 @@ struct DSAGamificationView: View {
             totalInputTime = Date().timeIntervalSince(startTime)
         }
         
-        // Calculate score
+        // Calculate score (max 100%)
         let timeBonus = calculateTimeBonus()
-        let totalScore = 100 + timeBonus
+        let totalScore = min(100, 100 + timeBonus)
         
         // Store score for this level
         levelScores.append(totalScore)
@@ -497,11 +500,20 @@ struct DSAGamificationView: View {
         // Show result pop-up
         showingResult = true
         
-        // Record final score
+        // Record final score to both managers
         scoreManager.record(
             topic: "Eyesight Challenge (Finished)",
             source: .map,
             score: averageScore
+        )
+        
+        // Record to GameResultManager for dashboard
+        gameResultManager.record(
+            gameName: "Eyesight Challenge",
+            maxLevelReached: level,
+            accuracy: Double(averageScore),
+            avgResponseTime: totalInputTime,
+            totalScore: averageScore
         )
     }
 

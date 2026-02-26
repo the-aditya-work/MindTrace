@@ -59,8 +59,8 @@ struct MotionChallengeView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 20) {
-                Text("Motion Challenge")
-                    .font(.title2)
+                Text("Let's start Motion Challenge...")
+                    .font(.subheadline)
                     .bold()
 
                 Text("Tap direction to move the ball to the hole.")
