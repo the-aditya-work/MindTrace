@@ -37,9 +37,9 @@ struct GameCardView<Destination: View>: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.15))
+                    .strokeBorder(Color.secondary.opacity(0.2))
             )
-            .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
+            .shadow(color: .primary.opacity(0.06), radius: 8, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }

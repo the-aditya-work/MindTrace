@@ -14,36 +14,35 @@ struct OnboardingView: View {
                 // Background gradient
                 LinearGradient(
                     colors: [
-                        Color.black.opacity(0.8),
-                        Color.blue.opacity(0.6),
-                        Color.purple.opacity(0.4)
+                        Color.primary.opacity(0.1),
+                        Color.blue.opacity(0.3),
+                        Color.purple.opacity(0.2)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
                 
-                VStack(spacing: 0) {
+                VStack(spacing: 20) {
+                    // Content area
+                    VStack(spacing: 30) {
+                        contentView
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .trailing).combined(with: .opacity),
+                                removal: .move(edge: .leading).combined(with: .opacity)
+                            ))
+                    }
+                    .padding(.horizontal, 24)
+                    
+                    Spacer()
+                    
                     // Progress indicator
                     progressIndicator
-                    
-                    // Content area
-                    ScrollView {
-                        VStack(spacing: 30) {
-                            contentView
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                                    removal: .move(edge: .leading).combined(with: .opacity)
-                                ))
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 40)
-                    }
                     
                     // Bottom controls
                     bottomControls
                         .padding(.horizontal, 24)
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 60)
                 }
             }
         .edgesIgnoringSafeArea(.top)
@@ -57,7 +56,7 @@ struct OnboardingView: View {
             HStack(spacing: 12) {
                 ForEach(0..<5, id: \.self) { index in
                     Circle()
-                        .fill(index == viewModel.currentStep ? Color.white : Color.white.opacity(0.3))
+                        .fill(index == viewModel.currentStep ? Color.primary : Color.secondary.opacity(0.3))
                         .frame(width: 8, height: 8)
                         .scaleEffect(index == viewModel.currentStep ? 1.2 : 1.0)
                         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.currentStep)
@@ -85,47 +84,29 @@ struct OnboardingView: View {
     
     private var welcomeView: some View {
         VStack(spacing: 30) {
+            Spacer()
+            
             // App icon
-            ZStack {
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 120, height: 120)
-                    .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
-                
-                Image(systemName: "brain.head.profile")
-                    .font(.system(size: 50, weight: .medium))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.white, .blue.opacity(0.8)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .scaleEffect(animateIcon ? 1.1 : 1.0)
-                    .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: animateIcon)
-            }
+            Image("AppIcon1")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 150, height: 150)
+                .cornerRadius(20)
             
             // Welcome text
-            VStack(spacing: 16) {
+            VStack(spacing: 20) {
                 Text(OnboardingData.welcomeTitle)
                     .font(.largeTitle.bold())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
                 
                 Text(OnboardingData.welcomeSubtitle)
                     .font(.title2.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                
-                Text(OnboardingData.welcomeDescription)
-                    .font(.body)
-                    .foregroundStyle(.white.opacity(0.8))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(nil)
             }
-        }
-        .onAppear {
-            animateIcon = true
+            
+            Spacer()
         }
     }
     
@@ -133,64 +114,27 @@ struct OnboardingView: View {
     
     private func featureView(_ feature: OnboardingFeature) -> some View {
         VStack(spacing: 30) {
+            Spacer()
+            
             // Feature icon
-            ZStack {
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 120, height: 120)
-                    .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
-                
-                Image(systemName: feature.iconName)
-                    .font(.system(size: 50, weight: .medium))
-                    .foregroundStyle(colorForFeature(feature.color))
-                    .scaleEffect(animateIcon ? 1.1 : 1.0)
-                    .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: animateIcon)
-            }
+            Image(systemName: feature.iconName)
+                .font(.system(size: 60, weight: .medium))
+                .foregroundStyle(colorForFeature(feature.color))
             
             // Feature content
-            VStack(spacing: 20) {
+            VStack(spacing: 16) {
                 Text(feature.title)
                     .font(.largeTitle.bold())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
                 
                 Text(feature.description)
-                    .font(.body)
-                    .foregroundStyle(.white.opacity(0.9))
+                    .font(.title2.weight(.medium))
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .lineLimit(nil)
-                
-                // Benefit card
-                HStack(spacing: 12) {
-                    Image(systemName: "star.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(.yellow)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Key Benefit")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.7))
-                        
-                        Text(feature.benefit)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.white)
-                    }
-                    
-                    Spacer()
-                }
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.white.opacity(0.1))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .strokeBorder(.white.opacity(0.2), lineWidth: 1)
-                        )
-                )
             }
-        }
-        .onAppear {
-            animateIcon = true
+            
+            Spacer()
         }
     }
     
@@ -198,41 +142,27 @@ struct OnboardingView: View {
     
     private var completionView: some View {
         VStack(spacing: 30) {
+            Spacer()
+            
             // Success icon
-            ZStack {
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 120, height: 120)
-                    .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
-                
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 50, weight: .medium))
-                    .foregroundStyle(.green)
-                    .scaleEffect(animateIcon ? 1.1 : 1.0)
-                    .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: animateIcon)
-            }
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 60, weight: .medium))
+                .foregroundStyle(.green)
             
             // Completion text
             VStack(spacing: 16) {
                 Text(OnboardingData.completionTitle)
                     .font(.largeTitle.bold())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
                 
                 Text(OnboardingData.completionSubtitle)
                     .font(.title2.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                
-                Text(OnboardingData.completionDescription)
-                    .font(.body)
-                    .foregroundStyle(.white.opacity(0.8))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(nil)
             }
-        }
-        .onAppear {
-            animateIcon = true
+            
+            Spacer()
         }
     }
     
@@ -258,7 +188,7 @@ struct OnboardingView: View {
                 .frame(height: 54)
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.white)
+                        .fill(.regularMaterial)
                 )
             }
             .buttonStyle(.scaleOnPress)
@@ -270,7 +200,7 @@ struct OnboardingView: View {
                     Button("Back") {
                         viewModel.previousStep()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .font(.subheadline.weight(.medium))
                     .buttonStyle(.scaleOnPress)
                 }
@@ -282,7 +212,7 @@ struct OnboardingView: View {
                     Button("Skip") {
                         viewModel.skipOnboarding()
                     }
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.secondary)
                     .font(.subheadline.weight(.medium))
                     .buttonStyle(.scaleOnPress)
                 }
