@@ -6,15 +6,13 @@ struct TestTabView: View {
         ScrollView {
             VStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Memory Games")
-                        .font(.largeTitle.bold())
-                    Text("Level‑based puzzles inspired by game‑based aptitude tests.")
+                    Text("Start playing and challenge your brain!")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 4)
-
+                
                 VStack(spacing: 16) {
                     GameCardView(
                         title: "Geo‑Sudo Challenge",
@@ -66,6 +64,8 @@ struct TestTabView: View {
             .padding(.top, 16)
             .padding(.bottom, 32)
         }
+        .navigationTitle("Memory Games")
+        .navigationBarTitleDisplayMode(.large)
     }
 }
 
