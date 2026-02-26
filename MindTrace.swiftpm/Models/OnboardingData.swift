@@ -14,7 +14,7 @@ class OnboardingData: ObservableObject {
         OnboardingFeature(
             id: 0,
             title: "Memory Games",
-            description: "Challenge your brain with 9 different cognitive games designed to improve memory, logic, and problem-solving skills.",
+            description: "Challenge your brain with fun cognitive games designed to improve memory, logic, and problem-solving skills.",
             iconName: "brain.head.profile",
             benefit: "Enhances memory, concentration, and logical thinking abilities",
             color: "blue"
@@ -37,7 +37,7 @@ class OnboardingData: ObservableObject {
         )
     ]
     
-    static let welcomeTitle = "Welcome to MindTrace"
+    static let welcomeTitle = "Welcome to LogicFlow"
     static let welcomeSubtitle = "Your personal brain training companion"
     static let welcomeDescription = "Train your mind with scientifically designed games that enhance memory, logic, and cognitive abilities."
     

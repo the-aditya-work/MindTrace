@@ -8,19 +8,19 @@ import PackageDescription
 import AppleProductTypes
 
 let package = Package(
-    name: "MindTrace",
+    name: "LogicFlow",
     platforms: [
         .iOS("16.0")
     ],
     products: [
         .iOSApplication(
-            name: "MindTrace",
+            name: "LogicFlow",
             targets: ["AppModule"],
-            bundleIdentifier: "apple.MindTrace",
+            bundleIdentifier: "apple.LogicFlow",
             teamIdentifier: "777RNPN89P",
             displayVersion: "1.0",
             bundleVersion: "1",
-            appIcon: .placeholder(icon: .mic),
+            appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.indigo),
             supportedDeviceFamilies: [
                 .pad,
